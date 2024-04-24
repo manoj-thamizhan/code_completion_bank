@@ -1,0 +1,81 @@
+from cryptography.fernet import Fernet
+import json
+import os
+
+# Generate a key for encryption
+def generate_key():
+    return Fernet.generate_key()
+
+# Encrypt data using the generated key
+def encrypt_data(key, data):
+    cipher = Fernet(key)
+    return cipher.encrypt(data.encode()).decode()
+
+# Decrypt data using the key
+def decrypt_data(key, encrypted_data):
+    cipher = Fernet(key)
+    return cipher.decrypt(encrypted_data.encode()).decode()
+
+# Function to save user data to a file
+def save_user_data(filename, data):
+    with open(filename, 'w') as file:
+        json.dump(data, file)
+
+# Function to load user data from a file
+def load_user_data(filename):
+    if os.path.exists(filename):
+        with open(filename, 'r') as file:
+            return json.load(file)
+    else:
+        return None
+
+# Main function
+def main():
+    key = generate_key()  # Generate a new key each time the program starts
+
+    # Load user data if available
+    user_data = load_user_data("user_data.json")
+    if user_data is None:
+        user_data = {}  # If no data found, initialize with empty dictionary
+
+    while True:
+        print("1. Login")
+        print("2. Register")
+        print("3. Exit")
+        choice = input("Enter your choice: ")
+
+        if choice == "1":  # Login
+            username = input("Enter username: ")
+            password = input("Enter password: ")
+
+            if username in user_data and user_data[username]['password'] == encrypt_data(key, password):
+                print("Login successful!")
+                # Access user's banking details from user_data[username]['bank_details']
+            else:
+                print("Invalid username or password.")
+
+        elif choice == "2":  # Register
+            username = input("Enter username: ")
+            if username in user_data:
+                print("Username already exists. Please choose another.")
+                continue
+            password = input("Enter password: ")
+            bank_details = input("Enter your banking details: ")
+
+            # Encrypt sensitive data before saving
+            encrypted_password = encrypt_data(key, password)
+            encrypted_bank_details = encrypt_data(key, bank_details)
+
+            # Store user data
+            user_data[username] = {'password': encrypted_password, 'bank_details': encrypted_bank_details}
+            save_user_data("user_data.json", user_data)
+            print("Registration successful!")
+
+        elif choice == "3":  # Exit
+            break
+
+        else:
+            print("Invalid choice. Please try again.")
+
+if __name__ == "__main__":
+    main()
